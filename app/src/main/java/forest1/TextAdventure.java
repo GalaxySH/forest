@@ -6,11 +6,13 @@ public class TextAdventure {
   final Scanner s;
   Player hero;
   boolean primaryEndCondition;
+  boolean completedSix;
 
   public TextAdventure() {
     console = new FancyConsole("Great Text Adventure!", 600, 1000);
     s = new Scanner(System.in);
     primaryEndCondition = false;
+    completedSix = false;
 
     // feel free to change the player's starting values
     hero = new Player("", 100, 0);
@@ -43,7 +45,7 @@ public class TextAdventure {
    * @return integer (index 1) representing chosen response
    */
   private int multichoice(String preceder, String... choices) {
-    String toPrint = "\n" + (!preceder.isEmpty() ? preceder + "\n" : "");
+    String toPrint = "\n" + (Boolean.valueOf(preceder) && preceder != null && !preceder.isEmpty() ? preceder + "\n" : "");
     for (int i = 0; i < choices.length; i++) {
       String choice = choices[i];
       if (choice.isEmpty()) continue;
@@ -167,7 +169,7 @@ public class TextAdventure {
         """);
 
     // Take action or go to another zone based on their choice
-    int r = ask("climb a tree", "go toward the noise", "sing", "sleep");
+    int r = ask("climb a tree", "go toward the noise", "sing", "sleep", "leave the forest");
     if (r == 1) {// tree
       enterZone4();
       return;
@@ -178,6 +180,9 @@ public class TextAdventure {
       return;
     } else if (r == 4) {// sleep
       sleep();
+      return;
+    } else if (r == 5) {// sleep
+      play(true);
       return;
     } else {
       noop();
@@ -275,6 +280,7 @@ public class TextAdventure {
     System.out.println("Way to go, champ! You won.");
     hero.changeName(hero.getName() + "🏆");
     hero.setHealth(hp);
+    primaryEndCondition = true;
     enterZone5();
     return;
   }
@@ -284,7 +290,7 @@ public class TextAdventure {
    */
   private void enterZone4() {
     // change image
-    console.setImage("sun.jpg");
+    console.setImage("sun.png");
 
     System.out.println("""
       All of the trees have nice climbable bark, and you quickly make your way up to the high
@@ -293,15 +299,27 @@ public class TextAdventure {
     int r = ask("try again, surely you will see something this time", "give up");
     if (r == 1) {
       int x = (int) (Math.random() * 50);
-      if (x < 5) {// bird of prey
+      if (x < 5) {// bird of prey (get attacked after trying again)
         System.out.println("""
-          Above the canopy, you see a vast forest illuminated by the two suns over head.
+          Above the canopy, you see a vast forest illuminated by the two suns over head. Off
+          to your side, you notice a shape moving. When you turn to it, you see that it is a
+          large bird, and it is coming at you. You don't have time to react, and it snatches
+          you from the branches. Its large claws pierce your skin. After flying for a few
+          seconds, it drops you into the canopy. You fall through the branches. You lose 50
+          health.
           """);
+        hero.setHealth(hero.getHealth() - 50);
+        if (hero.getHealth() < 1) {
+          System.out.println("Unfortunate, you're dead.");
+          gameEnd();
+          return;
+        }
+        ask("continue");
         enterZone2();
-      } else if (x < 25) {// bird
+      } else if (x < 25) {// bird (see a bird after trying again)
         System.out.println("Woah! You see a bird! You'll remember this moment. You head back down.");
         enterZone2();
-      } else {// nothing
+      } else {// try again and get nothing
         enterZone4();
       }
       return;
@@ -338,16 +356,45 @@ public class TextAdventure {
             Wow, that's pretty sure. As you make your way to the herd, one looks up at you,
             flashing its blinkers. You approach it, and it revs its engine.
             """);
-        } else {
-          noop();
+            r = ask("attempt to board it", "run away");
+          if (r == 1 && primaryEndCondition) {
+            System.out.println("""
+            You get on, and the ATV purs loudly. It begins moving, and you hold onto the handlebars
+            in fear. The herd starts to move with it, and soon you are on your way out of
+            the ravine.
+            """);
+            enterZone6();
+            return;
+          } else if (r == 2) {
+            System.out.println("""
+              You try to run, not knowing that this aggravates ATVs. You hear the growl of its
+              engine coming behind you, and just as you flinch you feel overwhelming pain as
+              the vehicle plows into you. The world goes dark.
+                """);
+            gameEnd();
+            return;
+          } else {
+            System.out.println("Before you can approach the ATV, a voice emanates from all around you:\n\"" 
+            + hero.getName() +
+            """
+            , you are not yet ready, come back when you have proven yourself in battle.\"
+            You turn back.
+            """);
+            ask("continue");
+            play(true);
+            return;
+          }
         }
-      } else {
-        noop();
       }
-      return;
     } else if (r == 2) {// gas
+      System.out.println("""
+      You approach a sleeping ATV, and you can't find a gas cap. So much for that idea.
+      """);
+      enterZone5();
       return;
     } else if (r == 3) {// spook
+      System.out.println("You yell \"Boo!\", and that was the last thing you ever yelled.");
+      gameEnd();
       return;
     }
     noop();
@@ -361,20 +408,43 @@ public class TextAdventure {
     //
 
     //
+    System.out.println("""
+      The ATVs race onward, and you lose track of time. You open your eyes sometime later and
+      see that the world has changed around you. The land is a lush green, and there is a golden
+      sun overhead. A large building stands in front of you. It resembles a hotel, but you
+      can't tell how many floors it has, it goes on forever.
+        """);
 
-    //
-
+    int r = ask("assume this is a surreal dream", "accept this reality");
+    if (r == 1) {
+      System.out.println("""
+      You tell the ATV that you don't believe this is happening. It doesn't appreciate that.
+      It stops suddenly and you go flying into a tree, you die.
+      """);
+      gameEnd();
+      return;
+    } else {
+      System.out.println("""
+      On the front of the hotel is a sign that reads 'Valhalla'. You feel at home, you feel
+      at peace. Your new life has begun.
+      """);
+    }
   }
 
   /**
    * End the game
    */
   private void gameEnd() {//TODO add functionality for game completion check, when executed in #enterZone6()
-    int r = ask("restart", "exit");
-    if (r == 1) {
-    hero = new Player("", 100, 10);
-      play();
-      return;
+    if (!(primaryEndCondition && completedSix)) {
+      int r = ask("restart", "exit");
+      if (r == 1) {
+      hero = new Player("", 100, 10);
+        play();
+        return;
+      }
+    } else {
+      System.out.println("Congratulations! You have beaten the game. Welcome to Valhalla.");
+      ask("continue");
     }
     s.close();
     System.exit(0);
